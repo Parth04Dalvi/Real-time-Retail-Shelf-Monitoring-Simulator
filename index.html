@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Shelf Monitor Simulator (CV Project)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .monitor-frame {
+            border: 4px solid #3b82f6; /* Blue-600 border for the monitor effect */
+            background-color: #0d1117; /* Dark background to simulate a monitor */
+            position: relative;
+        }
+        /* Style for the 'bounding box' overlay */
+        .bounding-box {
+            position: absolute;
+            border: 2px solid #ef4444; /* Red border */
+            opacity: 0.8;
+            pointer-events: none; /* Allows clicks to pass through */
+            transition: all 0.5s ease-out;
+        }
+        .missing-box {
+            border: 3px dashed #f59e0b; /* Amber dashed border */
+            background-color: rgba(251, 191, 36, 0.2); /* Amber background */
+        }
+        .found-box {
+            border: 2px solid #10b981; /* Emerald border */
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen p-4 md:p-8">
+        <!-- Header -->
+        <header class="mb-8 border-b pb-4">
+            <h1 class="text-4xl font-extrabold text-gray-900 flex items-center">
+                <svg class="w-8 h-8 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55-4.55a2 2 0 00-2.83-2.83L12 7.17V4a2 2 0 00-4 0v3.17L4.28 2.62a2 2 0 00-2.83 2.83L7 10.83V14a2 2 0 004 0v-3.17l4.55 4.55a2 2 0 002.83-2.83L15 10z"></path></svg>
+                Retail Shelf Monitoring (CV Demo)
+            </h1>
+            <p class="text-sm text-gray-500 mt-1">Simulating computer vision processing and inventory checks.</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+            <!-- Sidebar: Controls and Configuration (Col 1) -->
+            <aside class="lg:col-span-1 space-y-6">
+
+                <!-- Control Card -->
+                <div class="card bg-white p-6 rounded-xl border-t-4 border-blue-500">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Simulation Controls</h2>
+                    <div class="space-y-4">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Scan Interval (ms):</span>
+                            <input type="number" id="scan-interval" value="2000" min="500" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </label>
+                        <button id="start-btn" onclick="toggleSimulation()" class="w-full py-3 px-4 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition duration-200 shadow-md flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 15m13.755-10.814L12 10.33l-7.33-7.33A2 2 0 002.67 4.28l7.33 7.33-7.33 7.33a2 2 0 002.83 2.83l7.33-7.33 7.33 7.33a2 2 0 002.83-2.83l-7.33-7.33 7.33-7.33a2 2 0 00-2.83-2.83L12 7.17V4a2 2 0 00-4 0v3.17L4.28 2.62a2 2 0 00-2.83 2.83L7 10.83V14a2 2 0 004 0v-3.17l4.55 4.55a2 2 0 002.83-2.83L15 10z"></path></svg>
+                            Start Monitoring
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Missing Inventory Panel -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                        Missing Items
+                    </h2>
+                    <ul id="missing-items-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <li class="text-sm text-gray-500">System scan not yet started.</li>
+                    </ul>
+                </div>
+            </aside>
+
+
+            <!-- Main Monitor Display (Cols 2-4) -->
+            <main class="lg:col-span-3 space-y-6">
+
+                <!-- Simulation Output -->
+                <div class="card bg-gray-900 p-2 rounded-xl monitor-frame w-full" style="aspect-ratio: 16 / 9;">
+                    <div id="camera-feed" class="w-full h-full relative overflow-hidden rounded-lg">
+                        <!-- Background Image (Simulated Shelf) -->
+                        <img id="shelf-image" 
+                             src="https://placehold.co/960x540/1f2937/d1d5db?text=Retail+Shelf+Camera+Feed" 
+                             alt="Retail Shelf Simulation" 
+                             class="w-full h-full object-cover opacity-70">
+                        
+                        <!-- Bounding Boxes will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- System Log -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">System Log</h2>
+                    <div id="system-log" class="bg-gray-100 p-3 rounded-lg text-sm text-gray-700 h-40 overflow-y-scroll space-y-1">
+                        <p class="text-gray-400">Log: System Ready. Press 'Start Monitoring' to begin image processing.</p>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Configuration Data ---
+        
+        // Define the expected products and their target location (Normalized to 0-1000 for responsive scaling)
+        // Bounding boxes are defined as [x_min, y_min, x_max, y_max]
+        const SHELF_LAYOUT = [
+            { id: 'ProductA', name: 'Premium Coffee', target: [50, 50, 300, 300], stock: 3, present: true },
+            { id: 'ProductB', name: 'Luxury Tea Bags', target: [320, 50, 570, 300], stock: 2, present: true },
+            { id: 'ProductC', name: 'Energy Bar Pack', target: [600, 50, 850, 300], stock: 5, present: true },
+            { id: 'ProductD', name: 'Oatmeal Cereal', target: [50, 350, 300, 500], stock: 4, present: true },
+            { id: 'ProductE', name: 'Protein Powder', target: [320, 350, 570, 500], stock: 1, present: true },
+            { id: 'ProductF', name: 'Granola Mix', target: [600, 350, 850, 500], stock: 6, present: true },
+        ];
+
+        // --- Global State ---
+        let simulationRunning = false;
+        let scanIntervalId = null;
+        let inventoryState = JSON.parse(JSON.stringify(SHELF_LAYOUT)); // Deep copy of the initial layout
+
+        // Attach global functions to the window object so they can be called from HTML
+        window.toggleSimulation = toggleSimulation;
+
+        // --- UI Element References ---
+        const startBtn = document.getElementById('start-btn');
+        const cameraFeed = document.getElementById('camera-feed');
+        const systemLog = document.getElementById('system-log');
+        const missingList = document.getElementById('missing-items-list');
+        const shelfImage = document.getElementById('shelf-image');
+
+        // --- Core Simulation Logic ---
+
+        /** Toggles the simulation state (Start/Stop). */
+        function toggleSimulation() {
+            if (simulationRunning) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        /** Starts the periodic inventory scan simulation. */
+        function startSimulation() {
+            if (simulationRunning) return;
+
+            const interval = parseInt(document.getElementById('scan-interval').value) || 2000;
+            simulationRunning = true;
+            
+            startBtn.textContent = 'Stop Monitoring';
+            startBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+            startBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+            
+            logMessage(`Simulation started with ${interval}ms scan interval.`, 'info');
+
+            // Perform an initial scan immediately
+            performScan();
+
+            // Set up the periodic scan
+            scanIntervalId = setInterval(performScan, interval);
+        }
+
+        /** Stops the simulation and clears the interval. */
+        function stopSimulation() {
+            if (!simulationRunning) return;
+
+            clearInterval(scanIntervalId);
+            simulationRunning = false;
+
+            startBtn.textContent = 'Start Monitoring';
+            startBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            startBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+            
+            logMessage('Simulation stopped.', 'warning');
+        }
+
+        /** Simulates image processing and inventory check. */
+        function performScan() {
+            logMessage('--- Starting CV Scan Cycle ---', 'info');
+
+            // 1. Simulate a random change in the shelf state (item taken)
+            simulateRandomChange();
+
+            // 2. Clear previous bounding boxes
+            removeBoundingBoxes();
+
+            let itemsMissing = 0;
+
+            // 3. Process Inventory State
+            inventoryState.forEach(item => {
+                const isPresent = item.present;
+                
+                // 4. Draw Bounding Box based on state
+                drawBoundingBox(item.target, item.id, isPresent);
+
+                // 5. Check and Log Missing Items
+                if (!isPresent) {
+                    itemsMissing++;
+                    logMessage(`ALERT: ${item.name} is detected as missing from its target location.`, 'alert');
+                }
+            });
+
+            // 6. Update Missing Items List
+            updateMissingItemsList();
+
+            logMessage(`Scan complete. ${itemsMissing} item(s) currently missing.`, 'success');
+        }
+
+        // --- Helper Functions ---
+
+        /** Simulates an external action (someone taking an item). */
+        function simulateRandomChange() {
+            // Only simulate a removal if there's an item present
+            const presentItems = inventoryState.filter(item => item.present);
+            
+            // 20% chance of a state change on any given scan
+            if (Math.random() < 0.20 && presentItems.length > 0) {
+                const itemToChangeIndex = Math.floor(Math.random() * presentItems.length);
+                const itemToChange = presentItems[itemToChangeIndex];
+
+                // Find the index in the global inventoryState
+                const globalIndex = inventoryState.findIndex(item => item.id === itemToChange.id);
+
+                if (globalIndex !== -1) {
+                    inventoryState[globalIndex].present = false;
+                    logMessage(`[Event]: Simulating ${inventoryState[globalIndex].name} removal.`, 'warning');
+
+                    // 10% chance that a previously missing item is restocked
+                } else if (Math.random() < 0.10) {
+                    const missingItems = inventoryState.filter(item => !item.present);
+                    if (missingItems.length > 0) {
+                        const restockIndex = Math.floor(Math.random() * missingItems.length);
+                        const restockItem = missingItems[restockIndex];
+                        const globalRestockIndex = inventoryState.findIndex(item => item.id === restockItem.id);
+                        inventoryState[globalRestockIndex].present = true;
+                        logMessage(`[Event]: Simulating ${inventoryState[globalRestockIndex].name} restock.`, 'success');
+                    }
+                }
+            }
+        }
+
+        /** Draws a bounding box on the camera feed element. */
+        function drawBoundingBox(targetBox, itemId, isPresent) {
+            const feedRect = cameraFeed.getBoundingClientRect();
+            const feedWidth = 1000; // Normalized width
+            const feedHeight = 540; // Normalized height (based on 16:9 ratio)
+
+            // Convert normalized coordinates (0-1000) to pixel percentage for responsiveness
+            const xMinPercent = (targetBox[0] / feedWidth) * 100;
+            const yMinPercent = (targetBox[1] / feedHeight) * 100;
+            const widthPercent = ((targetBox[2] - targetBox[0]) / feedWidth) * 100;
+            const heightPercent = ((targetBox[3] - targetBox[1]) / feedHeight) * 100;
+
+            const box = document.createElement('div');
+            box.className = `bounding-box absolute ${isPresent ? 'found-box' : 'missing-box'}`;
+            box.style.left = `${xMinPercent}%`;
+            box.style.top = `${yMinPercent}%`;
+            box.style.width = `${widthPercent}%`;
+            box.style.height = `${heightPercent}%`;
+            box.dataset.itemId = itemId;
+
+            // Optional: Add a label to the box
+            const label = document.createElement('div');
+            label.className = `absolute -top-6 left-0 text-white font-bold text-xs p-1 rounded-t-lg ${isPresent ? 'bg-green-600' : 'bg-red-600'}`;
+            label.textContent = isPresent ? 'FOUND' : 'MISSING';
+            box.appendChild(label);
+
+            cameraFeed.appendChild(box);
+        }
+
+        /** Removes all bounding boxes from the feed. */
+        function removeBoundingBoxes() {
+            cameraFeed.querySelectorAll('.bounding-box').forEach(box => box.remove());
+        }
+        
+        /** Updates the list of currently missing items in the sidebar. */
+        function updateMissingItemsList() {
+            missingList.innerHTML = '';
+            const currentlyMissing = inventoryState.filter(item => !item.present);
+
+            if (currentlyMissing.length === 0) {
+                missingList.innerHTML = '<li class="text-sm text-green-600 p-2">Shelf is fully stocked!</li>';
+                return;
+            }
+
+            currentlyMissing.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'text-sm text-red-700 p-2 bg-red-100 rounded-lg font-medium';
+                li.innerHTML = `
+                    <span class="font-bold">${item.name}</span> (ID: ${item.id}) - <span class="text-xs">Out of Stock Alert</span>
+                `;
+                missingList.appendChild(li);
+            });
+        }
+
+        /** Logs a message to the system log panel. */
+        function logMessage(message, type = 'info') {
+            const colors = {
+                info: 'text-gray-700',
+                warning: 'text-amber-600',
+                alert: 'text-red-600 font-bold',
+                success: 'text-green-600',
+            };
+            const prefix = {
+                info: '[INFO]',
+                warning: '[WARN]',
+                alert: '[ALERT]',
+                success: '[OK]',
+            };
+
+            const logItem = document.createElement('p');
+            logItem.className = `${colors[type]} transition-opacity duration-500 opacity-0`;
+            const now = new Date().toLocaleTimeString();
+            logItem.textContent = `${now} ${prefix[type]}: ${message}`;
+
+            // Prepend new message to the top
+            if (systemLog.firstChild) {
+                systemLog.insertBefore(logItem, systemLog.firstChild);
+            } else {
+                systemLog.appendChild(logItem);
+            }
+
+            // Animate fade-in
+            setTimeout(() => logItem.classList.remove('opacity-0'), 10);
+            
+            // Limit log size
+            while (systemLog.children.length > 20) {
+                systemLog.removeChild(systemLog.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>
