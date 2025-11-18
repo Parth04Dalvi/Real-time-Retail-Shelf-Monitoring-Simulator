@@ -1,4 +1,4 @@
-Retail Shelf Monitoring Simulator
+# Retail Shelf Monitoring Simulator
 🤖 AI/CV Proof of Concept for Inventory Management
 This project is a single-page web application that simulates a Computer Vision (CV) system used to monitor product inventory levels on retail shelves in real-time. It demonstrates the architecture required for object detection, bounding box visualization, anomaly alerting, and configuration persistence.
 
